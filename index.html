@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<link href="bootstrap.min.css" rel="stylesheet">
+<meta charset="utf-8">
+<style>
+    *, ::before, ::after{
+        box-sizing: border-box;
+    }
+    
+    html, body {
+        position: fixed;
+        width: 100%;
+        height: 100%;    
+    }
+    #svg {
+        width : 100%;
+        height : 100%;
+    }
+    .bar-chart {
+        fill: steelblue;
+        fill-opacity: 0.0;
+    }
+    .bar-chart:hover {
+        fill: yellowgreen;
+        stroke: blue;
+        stroke-width: 2px;    
+    }        
+</style>
+<body>
+    <svg id="svg"  width="960" height="500"
+    viewBox="0 0 960 500"
+    preserveAspectRatio="xMidYMid meet"></svg>
+<script src="d3.v4.min.js"></script>
+<script>
+    
+    
+   
+    var svg = d3.select("svg"),
+    margin = {top: 20, right: 0, bottom: 20, left: 0},
+    width = +svg.attr("width") - margin.left - margin.right,
+    height = +svg.attr("height") - margin.top - margin.bottom,
+    g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    var aspect = width / height;
+    
+
+    var tooltip = d3.select("body")
+        .append("div")
+        .style("position", "absolute")
+        .style("z-index", "10")
+        .style("visibility", "hidden")
+        .style("background", "rgb(255,255,255, 0.5)")
+        .style("border","solid 2px #555")        
+        .text("hey!");
+
+
+    d3.csv("data.csv", function(error, data) {
+        data = data
+                .slice()
+                //.sort((a,b) => b.mark - a.mark)
+                .map(({name, mark}) => ({ name: name, mark: mark}));
+        
+        x = d3.scaleBand()
+            .domain(data.map(d => d.name))
+            .range([margin.left, width - margin.right - 100])
+            .padding(0.1);
+        
+        y = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.mark)]).nice()
+            .range([height - margin.bottom, margin.top]);            
+
+        xAxis = g => g
+            .attr("transform", `translate(0,${height - margin.bottom})`)            
+            .call(d3.axisBottom(x));
+
+        yAxis = g => g            
+            .attr("transform", `translate(${margin.left},0)`)            
+            .call(d3.axisLeft(y))
+            .call(g => g.select(".domain").remove());
+        
+        svg.append("g")                        
+            .selectAll("rect").data(data).enter().append("rect")
+                .on("mouseover", function(d){
+					tooltip.text(d.mark); 
+					return tooltip.style("visibility", "visible");
+					})
+				.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");})
+                .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
+                .attr("class",'bar-chart')                
+                .attr("x", d => x(d.name))
+                .attr("y", d => y(0))
+                .transition().call(opacity, "0.8").duration(1750)
+                .attr("height", d => y(0) - y(d.mark))
+                .attr("y", d => y(d.mark))
+                .attr("width", x.bandwidth());
+
+        svg.append("g")            
+            .call(xAxis);
+        
+        svg.append("g")            
+            .call(yAxis);
+
+        function opacity(transition, opacity) {
+            transition
+                .style("fill-opacity", opacity);                
+        }
+
+        //draw static coordinate
+        var x1 = d3.scaleLinear()
+            .domain([0, data.length])
+            .range([0, width - margin.right - 100])
+
+        var y1 = d3.scaleLinear()
+            .domain([0, 100])
+            .range([height - margin.bottom - 20, 0]);            
+
+        var xAxis1 = d3.axisBottom(x1)
+            .ticks(15)
+            .tickSize(height - margin.bottom - 15);
+
+        var yAxis1 = d3.axisRight(y1)
+            .ticks(20)            
+            .tickSize(width - 100);
+
+        // g.append("g")        
+        //     .call(staticXAxis);
+
+        g.append("g")        
+            .call(staticYAxis);
+
+        function staticXAxis(g) {
+            g.call(xAxis1);            
+            g.selectAll(".tick line").attr("stroke", "#777").attr("stroke-dasharray", "2,2");
+        }
+
+        function staticYAxis(g) {
+            g.call(yAxis1);            
+            g.selectAll(".tick line").attr("stroke", "#777").attr("stroke-dasharray", "2,2");            
+        }
+    });
+
+    d3.select(window)
+    .on("resize", function() {
+        var targetWidth = svg.node().getBoundingClientRect().width;
+        svg.attr("width", targetWidth);
+        svg.attr("height", targetWidth / aspect);
+}); 
+</script>
+</body>
+</html>
