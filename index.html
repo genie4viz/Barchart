@@ -42,7 +42,6 @@
     g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
     var aspect = width / height;
-    
 
     var tooltip = d3.select("body")
         .append("div")
@@ -121,9 +120,6 @@
         var yAxis1 = d3.axisRight(y1)
             .ticks(20)            
             .tickSize(width - 100);
-
-        // g.append("g")        
-        //     .call(staticXAxis);
 
         g.append("g")        
             .call(staticYAxis);
